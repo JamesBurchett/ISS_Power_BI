@@ -1,0 +1,57 @@
+import requests
+import json
+import time
+from datetime import date, datetime
+from json import dumps
+
+iss_endpoint = "http://api.open-notify.org/iss-now.json"
+
+power_bi_endpoint = "https://api.powerbi.com/beta/0e8d92ef-ce7b-4e0f-bfda-0075b3e05c13/datasets/d3a391d0-3da7-47d6" \
+                    "-b232-afeac84249bd/rows?key=StpcyFVWxniYWyn3znpT1%2F2hLLFKxyBAE2yhRtVAfJZooL9" \
+                    "%2FHFYLPBfEWwNNA5dMo7%2FBQbxUeV9mwrjCBpV8LA%3D%3D "
+
+
+def json_serial(obj):
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    raise TypeError("Type %s not serializable" % type(obj))
+
+
+def update_data():
+    response = requests.get(iss_endpoint)
+    response.raise_for_status()
+    data = response.json()
+
+    iss_latitude = float(data["iss_position"]["latitude"])
+    iss_longitude = float(data["iss_position"]["longitude"])
+    iss_timestamp = dumps(datetime.now().replace(microsecond=0), default=json_serial)
+    iss_message = str(data["message"])
+    print("Iterator live")
+
+
+    payload = [
+        {
+            "Latitude": iss_latitude,
+            "Longitude": iss_longitude,
+            "Timestamp": iss_timestamp,
+            "Message": iss_message
+        }
+    ]
+
+    headers = {
+        "Content-Type": "application/json"
+    }
+
+    response = requests.request(
+        method="POST",
+        url=power_bi_endpoint,
+        headers=headers,
+        data=json.dumps(payload)
+    )
+
+    response.raise_for_status()
+
+
+while True:
+    time.sleep(10)
+    update_data()
